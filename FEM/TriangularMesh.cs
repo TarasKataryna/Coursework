@@ -100,11 +100,11 @@ namespace FEM
             int index = 0;
 
             //nodes
-            for (int i = 0; i < this.InRow+1; ++i)
+            for (int i = 0; i < this.InRow + 1; ++i)
             {
                 x = this.X1 + (i * elementWidth);
                 y = this.Y1;
-                index = i * (this.InCol + 1) + i * this.InCol; 
+                index = i * (this.InCol + 1) + i * this.InCol;
                 for (int j = 0; j < this.InCol + 1; ++j)
                 {
                     Node node = new Node(x, y, index);
@@ -117,9 +117,9 @@ namespace FEM
 
             for (int i = 0; i < this.InRow; ++i)
             {
-                x = this.X1+elementHalfWidth + (i * elementWidth);
+                x = this.X1 + elementHalfWidth + (i * elementWidth);
                 y = this.Y1 + elementHalfHeight;
-                index = (i+1) * (this.InCol + 1) + i * this.InCol;
+                index = (i + 1) * (this.InCol + 1) + i * this.InCol;
                 for (int j = 0; j < this.InCol; ++j)
                 {
                     Node node = new Node(x, y, index);
@@ -131,21 +131,120 @@ namespace FEM
 
 
             //finite elements
+            //  |\
+            //  | \
+            //  | /
+            //  |/
             index = 0;
             for (int i = 0; i < this.InRow; ++i)
             {
+                index = i * this.InCol * 4;
                 for (int j = 0; j < this.InCol; ++j)
                 {
                     Element element = new Element();
                     element.Index = index;
-                    int nodeIndex = i * (this.InCol + 1) + i*this.InCol + j;
+                    int nodeIndex = i * (this.InCol + 1) + i * this.InCol + j;
                     element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex).First());
-                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == (nodeIndex+1)).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == (nodeIndex + 1)).First());
                     element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == (nodeIndex + 1 + this.InCol)).First());
                     FiniteElements.Add(element);
+                    ++index;
                 }
             }
+
+            //     /|
+            //    / | 
+            //    \ |
+            //     \|
+            for (int i = 0; i < this.InRow; ++i)
+            {
+                index = i * this.InCol * 4 + this.InCol * 3;
+                for (int j = 0; j < this.InCol; ++j)
+                {
+                    Element element = new Element();
+                    element.Index = index;
+                    int nodeIndex = (i + 1) * (this.InCol + 1) + (i + 1) * this.InCol + j;
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex + 1).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex - this.InCol).First());
+                    FiniteElements.Add(element);
+                    ++index;
+                }
+            }
+
+            //    /\
+            //   /  \
+            //  /____\
+            for (int i = 0; i < this.InRow; ++i)
+            {
+                index = i * this.InCol * 4 + this.InCol;
+                for (int j = 0; j < this.InCol; ++j)
+                {
+                    Element element = new Element();
+                    element.Index = index;
+                    int nodeIndex = (i + 1) * (this.InCol + 1) + (i + 1) * this.InCol + j;
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex - this.InCol).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex - 2 * this.InCol - 1).First());
+                    FiniteElements.Add(element);
+                    index += 2;
+                }
+            }
+
+            for (int i = 0; i < this.InRow; ++i)
+            {
+                index = i * this.InCol * 4 + this.InCol +1;
+                for (int j = 0; j < this.InCol; ++j)
+                {
+                    Element element = new Element();
+                    element.Index = index;
+                    int nodeIndex = (i + 1) * (this.InCol + 1) + (i + 1) * this.InCol + j - this.InCol;
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex - this.InCol).First());
+                    element.Nodes.Add(Nodes.Where(el => el.GlobalIndex == nodeIndex + this.InCol + 1).First());
+                    FiniteElements.Add(element);
+                    index += 2;
+                }
+            }
+        
+}
+
+        public double CalculateJakobian(Node first, Node second, Node third)
+        {
+            return 0.0;
+
         }
+
+        public double CalculateElementOfMatrix(int PhiUIndex, int PhiVindex, double[][] weights, double[] coef )
+        {
+            return 0;
+        }
+
+        public double M1(double x, double y)
+        {
+            return 0.0;
+        }
+
+        public double M2(double x, double y)
+        {
+            return 0.0;
+        }
+
+        public double B1(double x, double y)
+        {
+            return 0.0;
+        }
+
+        public double B2(double x, double y)
+        {
+            return 0.0;
+        }
+
+        public double L(double x, double y)
+        {
+            return 0.0;
+        }
+
 
         #region dunavant
 
