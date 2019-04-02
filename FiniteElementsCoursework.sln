@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FiniteElementsCoursework", "FiniteElementsCoursework\FiniteElementsCoursework.csproj", "{B3A15BC7-28E7-42CE-85F5-D5BFDF1C2E6A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FEM", "FEM\FEM.csproj", "{C811D65B-E8ED-403D-85C3-97E2AE3ECF9B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B3A15BC7-28E7-42CE-85F5-D5BFDF1C2E6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3A15BC7-28E7-42CE-85F5-D5BFDF1C2E6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3A15BC7-28E7-42CE-85F5-D5BFDF1C2E6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3A15BC7-28E7-42CE-85F5-D5BFDF1C2E6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C811D65B-E8ED-403D-85C3-97E2AE3ECF9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C811D65B-E8ED-403D-85C3-97E2AE3ECF9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C811D65B-E8ED-403D-85C3-97E2AE3ECF9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C811D65B-E8ED-403D-85C3-97E2AE3ECF9B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {45EB940E-AC38-4535-B4AC-940E91A823D2}
+	EndGlobalSection
+EndGlobal
