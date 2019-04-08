@@ -28,6 +28,8 @@ namespace FEM
 
         public double Jakobian { get; set; }
 
+        public List<LocalMatrix> Matrixes { get; set; }
+
         public BaseLocalFunction[] baseFunctions { get; set; }
 
         public BaseLocalFunction[][] baseFunctionsDerivative { get; set; }
@@ -215,9 +217,47 @@ namespace FEM
 
         }
 
-        public double CalculateElementOfMatrix(int PhiUIndex, int PhiVindex, double[][] weights, double[] coef )
+        public double CalculateElementOfMatrix(int PhiUIndex, int PhiVindex, double[][] nodes, double[] weights)
         {
-            return 0;
+            double result = 0;
+            for (int i = 0; i < nodes.Length; ++i)
+            {
+               result += (M1(1, 1) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctionsDerivative[PhiVindex][0](nodes[i])
+                   + M2(1, 1) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctionsDerivative[PhiVindex][1](nodes[i])
+                   + B1(1, 1) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
+                   + B2(1, 1) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
+                   + L(1, 1) * baseFunctions[PhiUIndex](nodes[i]) * baseFunctions[PhiVindex](nodes[i]))*weights[i];
+            }
+            return result;
+        }
+
+        public void CalculateMatrixForEachElement()
+        {
+            int localInRow = 5;
+            int localInCol = 3;
+
+            Matrixes = new List<LocalMatrix>();
+
+            double[][] nodes ;
+            double[] weights;
+
+            InitTriangleNodes(5, out nodes, out weights);
+
+            for(int i = 0; i < FiniteElements.Capacity; ++i)
+            {
+                LocalMatrix localMatrix = new LocalMatrix(r: localInRow, c:localInCol);
+                ////////дописати тут!!!!!!!!!!!!!!!!!!!!!!
+                double jakobian = 
+                localMatrix.Index = FiniteElements[i].Index;
+                for(int j = 0; j < localInCol; ++j)
+                {
+                    for (int k = 0; k < localInRow; ++k)
+                    {
+                        localMatrix.Data[j][k] = CalculateElementOfMatrix(j,k,nodes,weights);
+                    }
+                }
+                Matrixes.Add(localMatrix);
+            }
         }
 
         public double M1(double x, double y)
@@ -245,6 +285,22 @@ namespace FEM
             return 0.0;
         }
 
+
+        private void InitTriangleNodes(int order,out double [][]gtn, out double[]gtw)
+        {
+            int order_num = dunavant_order_num(order);
+            if (order_num == -1) return;
+
+            gtn = new double[order_num][];
+            for (int ni = 0; ni < order_num; ni++)
+                gtn[ni] = new double[2];
+            gtw = new double[order_num];
+
+            dunavant_rule(order, order_num, ref gtn, ref gtw);
+            for (int ni = 0; ni < order_num; ni++)
+                gtw[ni] /= 2;
+
+        }
 
         #region dunavant
 
