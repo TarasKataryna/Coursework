@@ -213,16 +213,28 @@ namespace FEM
 
             //find linked nodes
             int maxNodes = Nodes.Count;
+            int nodesInCol = this.InCol + 1 + this.InCol;
 
-            foreach(Node item in Nodes)
+            for (int i = 0; i < this.InRow + 1; ++i)
             {
-                if(item.IsBoundary == false)
+                x = this.X1 + (i * elementWidth);
+                y = this.Y1;
+                index = i * (this.InCol + 1) + i * this.InCol;
+                for (int j = 0; j < this.InCol + 1; ++j)
                 {
-                    Node
-                }
-                else
-                {
+                    Node node = Nodes.Where(n => n.GlobalIndex == index).First();
+                    if (node.IsBoundary)
+                    {
 
+                    }
+                    else
+                    {
+                        node.LinkedNodes.Add(Nodes.Where(n => n.GlobalIndex == (index + 1)).First());
+                        node.LinkedNodes.Add(Nodes.Where(n => n.GlobalIndex == (index - 1)).First());
+                        node.LinkedNodes.Add(Nodes.Where(n => n.GlobalIndex == (index + nodesInCol)).First());
+                        node.LinkedNodes.Add(Nodes.Where(n => n.GlobalIndex == (index - nodesInCol)).First());
+                    }
+                    ++index;
                 }
             }
 
@@ -260,21 +272,57 @@ namespace FEM
 
             InitTriangleNodes(5, out nodes, out weights);
 
-            for (int i = 0; i < FiniteElements.Capacity; ++i)
+            for (int i = 0; i < FiniteElements.Count; ++i)
             {
                 LocalMatrix localMatrix = new LocalMatrix(r: localInRow, c: localInCol);
-                ////////дописати тут!!!!!!!!!!!!!!!!!!!!!!
-                double jakobian =
+
+                double jakobian = (FiniteElements[i].Nodes
+                    .Where(n => n.LocalIndex == 0).First().X - FiniteElements[i].Nodes
+                    .Where(n => n.LocalIndex == 1).First().X) * (FiniteElements[i].Nodes.Where(n => n.LocalIndex == 0).First().Y - FiniteElements[i].Nodes.Where(n => n.LocalIndex == 2).First().Y);
+                jakobian -= (FiniteElements[i].Nodes
+                    .Where(n => n.LocalIndex == 0).First().X - FiniteElements[i].Nodes
+                    .Where(n => n.LocalIndex == 2).First().X) * (FiniteElements[i].Nodes.Where(n => n.LocalIndex == 0).First().Y - FiniteElements[i].Nodes.Where(n => n.LocalIndex == 1).First().Y);
+
                 localMatrix.Index = FiniteElements[i].Index;
+
                 for (int j = 0; j < localInCol; ++j)
                 {
                     for (int k = 0; k < localInRow; ++k)
                     {
-                        localMatrix.Data[j][k] = CalculateElementOfMatrix(j, k, nodes, weights);
+                        localMatrix.Data[j][k] = CalculateElementOfMatrix(j, k, nodes, weights) * jakobian;
                     }
                 }
                 Matrixes.Add(localMatrix);
             }
+        }
+
+        public double[][] CreateGlobalMatrix()
+        {
+            double[][] globalMatrix = new double[Nodes.Count][];
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                globalMatrix[i] = new double[Nodes.Count];
+            }
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                for (int j = 0; j < Nodes.Count; ++j)
+                {
+                    globalMatrix[i][j] = 0;
+                }
+            }
+
+            for (int i = 0; i < FiniteElements.Count; ++i)
+            {
+                for (int row = 0; row < 3; ++row)
+                {
+                    for (int col = 0; col < 3; ++col)
+                    {
+                        globalMatrix[FiniteElements[i][row].GlobalIndex][FiniteElements[i][col].GlobalIndex] += Matrixes[i].Data[row][col];
+                    }
+                }
+            }
+
+            return globalMatrix;
         }
 
         public double M1(double x, double y)

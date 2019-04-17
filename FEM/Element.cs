@@ -12,6 +12,14 @@ namespace FEM
 
         public int Index { get; set; }
 
+        public Node this[int index]
+        {
+            get
+            {
+                return Nodes.Where(item => item.LocalIndex == index).ToList().First();
+            }
+        }
+
         public Element()
         {
             Nodes = new List<Node>();
