@@ -25,10 +25,15 @@ namespace FEM
         {
             this.InCol = c;
             this.InRow = r;
-            Data = new List<List<double>>(c);
+            Data = new List<List<double>>();
             for (int i = 0; i < InCol; ++i)
             {
-                Data[i] = new List<double>(r);
+                var list = new List<double>();
+                for(int j = 0; j < this.InRow; ++j)
+                {
+                    list.Add(0);
+                }
+                Data.Add(list);
             }
         }
     }

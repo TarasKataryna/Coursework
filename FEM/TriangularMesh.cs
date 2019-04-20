@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace FEM
 {
     public class TriangularMesh
@@ -29,6 +30,8 @@ namespace FEM
         public double Jakobian { get; set; }
 
         public List<LocalMatrix> Matrixes { get; set; }
+
+        public List<double[]> LocalRightParts { get; set; } 
 
         public BaseLocalFunction[] baseFunctions { get; set; }
 
@@ -212,7 +215,7 @@ namespace FEM
 
 
             //find linked nodes
-            int maxNodes = Nodes.Count;
+            /*int maxNodes = Nodes.Count;
             int nodesInCol = this.InCol + 1 + this.InCol;
 
             for (int i = 0; i < this.InRow + 1; ++i)
@@ -236,7 +239,7 @@ namespace FEM
                     }
                     ++index;
                 }
-            }
+            }*/
 
         }
 
@@ -260,9 +263,19 @@ namespace FEM
             return result;
         }
 
+        public double CalculateElementOfRightPart(int PhiVIndex, double[][]nodes,double[] weights)
+        {
+            double result = 0;
+            for(int i = 0; i < nodes.Length; ++i)
+            {
+                result += F(1, 1) * baseFunctions[PhiVIndex](nodes[i]) * weights[i];
+            }
+            return result;
+        }
+
         public void CalculateMatrixForEachElement()
         {
-            int localInRow = 5;
+            int localInRow = 3;
             int localInCol = 3;
 
             Matrixes = new List<LocalMatrix>();
@@ -272,18 +285,25 @@ namespace FEM
 
             InitTriangleNodes(5, out nodes, out weights);
 
+            LocalRightParts = new List<double[]>();
+
             for (int i = 0; i < FiniteElements.Count; ++i)
             {
                 LocalMatrix localMatrix = new LocalMatrix(r: localInRow, c: localInCol);
 
-                double jakobian = (FiniteElements[i].Nodes
+                /*double jakobian = (FiniteElements[i].Nodes
                     .Where(n => n.LocalIndex == 0).First().X - FiniteElements[i].Nodes
                     .Where(n => n.LocalIndex == 1).First().X) * (FiniteElements[i].Nodes.Where(n => n.LocalIndex == 0).First().Y - FiniteElements[i].Nodes.Where(n => n.LocalIndex == 2).First().Y);
                 jakobian -= (FiniteElements[i].Nodes
                     .Where(n => n.LocalIndex == 0).First().X - FiniteElements[i].Nodes
                     .Where(n => n.LocalIndex == 2).First().X) * (FiniteElements[i].Nodes.Where(n => n.LocalIndex == 0).First().Y - FiniteElements[i].Nodes.Where(n => n.LocalIndex == 1).First().Y);
+                    */
+                double jakobian = (FiniteElements[i].Nodes[0].X - FiniteElements[i].Nodes[1].X) * (FiniteElements[i].Nodes[0].Y - FiniteElements[i].Nodes[2].Y);
+                jakobian -= (FiniteElements[i].Nodes[0].X - FiniteElements[i].Nodes[2].X) * (FiniteElements[i].Nodes[0].Y - FiniteElements[i].Nodes[1].Y);
 
                 localMatrix.Index = FiniteElements[i].Index;
+
+                double[] a = new double[3];
 
                 for (int j = 0; j < localInCol; ++j)
                 {
@@ -291,23 +311,23 @@ namespace FEM
                     {
                         localMatrix.Data[j][k] = CalculateElementOfMatrix(j, k, nodes, weights) * jakobian;
                     }
+                    a[j] = CalculateElementOfRightPart(j,nodes,weights);
                 }
+
                 Matrixes.Add(localMatrix);
+
+                LocalRightParts.Add(a);
             }
         }
 
-        public double[][] CreateGlobalMatrix()
+        public double[,] CreateGlobalMatrix()
         {
-            double[][] globalMatrix = new double[Nodes.Count][];
-            for (int i = 0; i < Nodes.Count; ++i)
-            {
-                globalMatrix[i] = new double[Nodes.Count];
-            }
+            double[,] globalMatrix = new double[Nodes.Count,Nodes.Count];
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 for (int j = 0; j < Nodes.Count; ++j)
                 {
-                    globalMatrix[i][j] = 0;
+                    globalMatrix[i,j] = 0;
                 }
             }
 
@@ -317,7 +337,7 @@ namespace FEM
                 {
                     for (int col = 0; col < 3; ++col)
                     {
-                        globalMatrix[FiniteElements[i][row].GlobalIndex][FiniteElements[i][col].GlobalIndex] += Matrixes[i].Data[row][col];
+                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex,FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
                     }
                 }
             }
@@ -325,31 +345,74 @@ namespace FEM
             return globalMatrix;
         }
 
+        public double[] CreateRightPart()
+        {
+            double[] rightPart = new double[Nodes.Count];
+
+            for (int i = 0; i < rightPart.Length; ++i)
+            {
+                rightPart[0] = 0;
+            }
+
+            for (int i = 0; i < FiniteElements.Count; ++i)
+            {
+                for (int row = 0; row < 3; ++row)
+                {
+                    rightPart[FiniteElements[i].Nodes[row].GlobalIndex] += LocalRightParts[i][row];
+                }
+            }
+
+            return rightPart;
+        }
+
         public double M1(double x, double y)
         {
-            return 0.0;
+            return 5;
         }
 
         public double M2(double x, double y)
         {
-            return 0.0;
+            return 7;
         }
 
         public double B1(double x, double y)
         {
-            return 0.0;
+            return 4;
         }
 
         public double B2(double x, double y)
         {
-            return 0.0;
+            return 3;
         }
 
         public double L(double x, double y)
         {
-            return 0.0;
+            return 6;
         }
 
+        public double F(double x, double y)
+        {
+            return 4;
+        }
+
+        public double[] GetQArray()
+        {
+            double[] q = new double[Nodes.Count];
+
+            CalculateMatrixForEachElement();
+
+            double[,] globalMatrix = CreateGlobalMatrix();
+
+            double[] rightPart = CreateRightPart();
+
+            alglib.densesolverreport report = new alglib.densesolverreport();
+            int info;
+
+
+            alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q );
+
+            return q;
+        }
 
         private void InitTriangleNodes(int order, out double[][] gtn, out double[] gtw)
         {
