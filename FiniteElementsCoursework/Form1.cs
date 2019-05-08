@@ -17,9 +17,19 @@ namespace FiniteElementsCoursework
         public Form1()
         {
             InitializeComponent();
-            TriangularMesh triangularMesh = new TriangularMesh(0,0,4,3);
+            TriangularMesh triangularMesh = new TriangularMesh(0,0,1,1);
             triangularMesh.CreateMesh(4, 3);
-            triangularMesh.GetQArray();
+            var a = triangularMesh.GetQArray();
+            double[] result = new double[triangularMesh.Nodes.Count];
+            for(int i = 0; i < triangularMesh.Nodes.Count; ++i)
+            {
+                result[i] = TriangularMesh.ext(triangularMesh.Nodes[i].X, triangularMesh.Nodes[i].Y);
+            }
+            double[] result1 = new double[triangularMesh.Nodes.Count];
+            for (int i = 0; i < triangularMesh.Nodes.Count; ++i)
+            {
+                result1[i] = Math.Abs(result[i]-a[i]);
+            }
             foreach (var item in triangularMesh.Nodes)
             {
                 chart1.Series["Series1"].Points.AddXY(item.X, item.Y);

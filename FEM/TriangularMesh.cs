@@ -320,14 +320,18 @@ namespace FEM
             }
         }
 
-        public double[,] CreateGlobalMatrix()
+        public double[][] CreateGlobalMatrix()
         {
-            double[,] globalMatrix = new double[Nodes.Count,Nodes.Count];
+            double[][] globalMatrix = new double[Nodes.Count][];
+            for(int i = 0; i < Nodes.Count; ++i)
+            {
+                globalMatrix[i] = new double[Nodes.Count];
+            }
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 for (int j = 0; j < Nodes.Count; ++j)
                 {
-                    globalMatrix[i,j] = 0;
+                    globalMatrix[i][j] = 0;
                 }
             }
 
@@ -337,7 +341,7 @@ namespace FEM
                 {
                     for (int col = 0; col < 3; ++col)
                     {
-                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex,FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
+                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex][FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
                     }
                 }
             }
@@ -367,17 +371,17 @@ namespace FEM
 
         public double M1(double x, double y)
         {
-            return 5;
+            return 0.02;
         }
 
         public double M2(double x, double y)
         {
-            return 7;
+            return 0.02;
         }
 
         public double B1(double x, double y)
         {
-            return 4;
+            return 2;
         }
 
         public double B2(double x, double y)
@@ -387,12 +391,12 @@ namespace FEM
 
         public double L(double x, double y)
         {
-            return 6;
+            return 0;
         }
 
         public double F(double x, double y)
         {
-            return 4;
+            return 2 * ((0.02 - 3 * y) * (GGG(2, x) - x) - GGG(3, y) + y * y);
         }
 
         public double[] GetQArray()
@@ -401,17 +405,33 @@ namespace FEM
 
             CalculateMatrixForEachElement();
 
-            double[,] globalMatrix = CreateGlobalMatrix();
+            double[][] globalMatrix = CreateGlobalMatrix();
 
             double[] rightPart = CreateRightPart();
 
-            alglib.densesolverreport report = new alglib.densesolverreport();
-            int info;
+            GausMethod gau = new GausMethod((uint)Nodes.Count, (uint)Nodes.Count);
+            gau.Matrix = globalMatrix;
+            gau.RightPart = rightPart;
+            Console.WriteLine($"\n\n{gau.SolveMatrix()}");
+            q = gau.Answer;
+
+            //alglib.densesolverreport report = new alglib.densesolverreport();
+            //int info;
 
 
-            alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q );
+            //alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q );
 
             return q;
+        }
+
+        static public double ext(double x, double y)
+        {
+            var a = x * y * y - y * y * GGG(2, x) + GGG(3, y) * (GGG(2, x) - x);
+            return a;
+        }
+        static public double GGG(double x, double y)
+        {
+            return Math.Exp(180.3 * x * (y - 1));
         }
 
         private void InitTriangleNodes(int order, out double[][] gtn, out double[] gtw)
