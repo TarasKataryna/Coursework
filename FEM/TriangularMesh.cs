@@ -254,11 +254,11 @@ namespace FEM
             double result = 0;
             for (int i = 0; i < nodes.Length; ++i)
             {
-                result += (M1(1, 1) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctionsDerivative[PhiVindex][0](nodes[i])
-                    + M2(1, 1) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctionsDerivative[PhiVindex][1](nodes[i])
-                    + B1(1, 1) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
-                    + B2(1, 1) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
-                    + L(1, 1) * baseFunctions[PhiUIndex](nodes[i]) * baseFunctions[PhiVindex](nodes[i])) * weights[i];
+                result += (M1(nodes[i][0],nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctionsDerivative[PhiVindex][0](nodes[i])
+                    + M2(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctionsDerivative[PhiVindex][1](nodes[i])
+                    + B1(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
+                    + B2(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
+                    + L(nodes[i][0], nodes[i][1]) * baseFunctions[PhiUIndex](nodes[i]) * baseFunctions[PhiVindex](nodes[i])) * weights[i];
             }
             return result;
         }
@@ -268,7 +268,7 @@ namespace FEM
             double result = 0;
             for(int i = 0; i < nodes.Length; ++i)
             {
-                result += F(1, 1) * baseFunctions[PhiVIndex](nodes[i]) * weights[i];
+                result += F(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVIndex](nodes[i]) * weights[i];
             }
             return result;
         }
@@ -320,7 +320,7 @@ namespace FEM
             }
         }
 
-        public double[][] CreateGlobalMatrix()
+        public double[][] CreateGlobalMatrix1()
         {
             double[][] globalMatrix = new double[Nodes.Count][];
             for(int i = 0; i < Nodes.Count; ++i)
@@ -342,6 +342,30 @@ namespace FEM
                     for (int col = 0; col < 3; ++col)
                     {
                         globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex][FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
+                    }
+                }
+            }
+
+            return globalMatrix;
+        }
+        public double[,] CreateGlobalMatrix()
+        {
+            double[,] globalMatrix = new double[Nodes.Count,Nodes.Count];
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                for (int j = 0; j < Nodes.Count; ++j)
+                {
+                    globalMatrix[i,j] = 0;
+                }
+            }
+
+            for (int i = 0; i < FiniteElements.Count; ++i)
+            {
+                for (int row = 0; row < 3; ++row)
+                {
+                    for (int col = 0; col < 3; ++col)
+                    {
+                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex,FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
                     }
                 }
             }
@@ -405,21 +429,22 @@ namespace FEM
 
             CalculateMatrixForEachElement();
 
-            double[][] globalMatrix = CreateGlobalMatrix();
+            double[][] globalMatrix1 = CreateGlobalMatrix1();
+            double[,] globalMatrix = CreateGlobalMatrix();
 
             double[] rightPart = CreateRightPart();
 
-            GausMethod gau = new GausMethod((uint)Nodes.Count, (uint)Nodes.Count);
-            gau.Matrix = globalMatrix;
-            gau.RightPart = rightPart;
-            Console.WriteLine($"\n\n{gau.SolveMatrix()}");
-            q = gau.Answer;
+            //GausMethod gau = new GausMethod((uint)Nodes.Count, (uint)Nodes.Count);
+            //gau.Matrix = globalMatrix;
+            //gau.RightPart = rightPart;
+            //Console.WriteLine($"\n\n{gau.SolveMatrix()}");
+            //q = gau.Answer;
 
-            //alglib.densesolverreport report = new alglib.densesolverreport();
-            //int info;
+            alglib.densesolverreport report = new alglib.densesolverreport();
+            int info;
 
 
-            //alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q );
+            alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q);
 
             return q;
         }
@@ -434,7 +459,7 @@ namespace FEM
             return Math.Exp(180.3 * x * (y - 1));
         }
 
-        private void InitTriangleNodes(int order, out double[][] gtn, out double[] gtw)
+        public void InitTriangleNodes(int order, out double[][] gtn, out double[] gtw)
         {
             gtn = new double[0][];
             gtw = new double[0];
