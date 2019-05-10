@@ -249,19 +249,27 @@ namespace FEM
 
         }
 
-        public double CalculateElementOfMatrix(int PhiUIndex, int PhiVindex, double[][] nodes, double[] weights)
+        public double CalculateElementOfMatrix(int PhiUIndex, int PhiVindex, double[][] nodes, double[] weights, Element element)
         {
             double result = 0;
+
+            double[] getArray = CalculateDePhiDeXDeFiDeY(PhiUIndex,element);
+            double[] getArrayV = CalculateDePhiDeXDeFiDeY(PhiVindex, element);
+
             for (int i = 0; i < nodes.Length; ++i)
             {
-                result += (M1(nodes[i][0],nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctionsDerivative[PhiVindex][0](nodes[i])
-                    + M2(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctionsDerivative[PhiVindex][1](nodes[i])
-                    + B1(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][0](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
-                    + B2(nodes[i][0], nodes[i][1]) * baseFunctionsDerivative[PhiUIndex][1](nodes[i]) * baseFunctions[PhiVindex](nodes[i])
+                result += (M1(nodes[i][0],nodes[i][1]) * getArray[0] *getArrayV[0]
+                    + M2(nodes[i][0], nodes[i][1]) * getArray[1] * getArrayV[1]
+                    + B1(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVindex](nodes[i]) * getArray[0]
+                    + B2(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVindex](nodes[i]) * getArray[1]
                     + L(nodes[i][0], nodes[i][1]) * baseFunctions[PhiUIndex](nodes[i]) * baseFunctions[PhiVindex](nodes[i])) * weights[i];
             }
+
+            Console.WriteLine($"Element --- {result}\n");
             return result;
         }
+
+
 
         public double CalculateElementOfRightPart(int PhiVIndex, double[][]nodes,double[] weights)
         {
@@ -309,7 +317,7 @@ namespace FEM
                 {
                     for (int k = 0; k < localInRow; ++k)
                     {
-                        localMatrix.Data[j][k] = CalculateElementOfMatrix(j, k, nodes, weights) * jakobian;
+                        localMatrix.Data[j][k] = CalculateElementOfMatrix(k, j, nodes, weights,FiniteElements[i]) * jakobian;
                     }
                     a[j] = CalculateElementOfRightPart(j,nodes,weights);
                 }
@@ -2026,5 +2034,47 @@ namespace FEM
 
         #endregion
 
+
+        public double[] CalculateDePhiDeXDeFiDeY(int deFiIndex, Element element)
+        {
+            double deiksdealpha = element.Nodes[0].X * baseFunctionsDerivative[0][0](new double[] {1, 1}) +
+                                  element.Nodes[1].X * baseFunctionsDerivative[1][0](new double[] {1, 1}) +
+                                  element.Nodes[2].X * baseFunctionsDerivative[2][0](new double[] {1, 1});
+
+            double deigrekdealpha = element.Nodes[0].Y * baseFunctionsDerivative[0][0](new double[] { 1, 1 }) +
+                                    element.Nodes[1].Y * baseFunctionsDerivative[1][0](new double[] { 1, 1 }) +
+                                    element.Nodes[2].Y * baseFunctionsDerivative[2][0](new double[] { 1, 1 });
+
+            double deiksdebetta = element.Nodes[0].X * baseFunctionsDerivative[0][1](new double[] { 1, 1 }) +
+                                  element.Nodes[1].X * baseFunctionsDerivative[1][1](new double[] { 1, 1 }) +
+                                  element.Nodes[2].X * baseFunctionsDerivative[2][1](new double[] { 1, 1 });
+
+            double deigrekdebetta= element.Nodes[0].Y * baseFunctionsDerivative[0][1](new double[] { 1, 1 }) +
+                                  element.Nodes[1].Y * baseFunctionsDerivative[1][1](new double[] { 1, 1 }) +
+                                  element.Nodes[2].Y * baseFunctionsDerivative[2][1](new double[] { 1, 1 });
+
+            double reverseJE = 1 / (deiksdealpha * deigrekdebetta - deigrekdealpha * deiksdebetta);
+
+            
+            double[] rightPart = new double[]{baseFunctionsDerivative[deFiIndex][0](new double[]{1,1}), baseFunctionsDerivative[deFiIndex][1](new double[]{1,1}) }; 
+
+            double[,] reverseMatrix = new double[,]
+            {
+                {deigrekdebetta * reverseJE, -1 * deigrekdealpha * reverseJE},
+                {-1 * deiksdebetta * reverseJE, deiksdealpha * reverseJE}
+            };
+
+            double[] result = new double[2] {0, 0};
+            for (int i = 0; i < 2; i++)
+            {
+                for (int j = 0; j < 2; ++j)
+                {
+                    result[i] += reverseMatrix[i, j] * rightPart[j];
+                }
+            }
+
+            Console.WriteLine($"ARRAY -- {result[0]} -- {result[1]}\n");
+            return result;
+        }
     }
 }
