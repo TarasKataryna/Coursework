@@ -31,13 +31,14 @@ namespace FEM
 
         public List<LocalMatrix> Matrixes { get; set; }
 
-        public List<double[]> LocalRightParts { get; set; } 
+        public List<double[]> LocalRightParts { get; set; }
 
         public BaseLocalFunction[] baseFunctions { get; set; }
 
         public BaseLocalFunction[][] baseFunctionsDerivative { get; set; }
 
         public TriangularMesh()
+
         {
             baseFunctions = new BaseLocalFunction[3];
             baseFunctions[0] = delegate (double[] alpha) { return 1 - alpha[0] - alpha[1]; };
@@ -115,8 +116,8 @@ namespace FEM
                     Node node = new Node(x, y, index);
                     y += elementHeight;
                     ++index;
-                    if (i == 0 || i == (this.InRow + 1)) node.IsBoundary = true;
-                    if (j == 0 || j == (this.InCol + 1)) node.IsBoundary = true;
+                    if (i == 0 || i == (this.InRow)) node.IsBoundary = true;
+                    if (j == 0 || j == (this.InCol)) node.IsBoundary = true;
                     Nodes.Add(node);
                 }
             }
@@ -253,28 +254,26 @@ namespace FEM
         {
             double result = 0;
 
-            double[] getArray = CalculateDePhiDeXDeFiDeY(PhiUIndex,element);
+            double[] getArray = CalculateDePhiDeXDeFiDeY(PhiUIndex, element);
             double[] getArrayV = CalculateDePhiDeXDeFiDeY(PhiVindex, element);
 
             for (int i = 0; i < nodes.Length; ++i)
             {
-                result += (M1(nodes[i][0],nodes[i][1]) * getArray[0] *getArrayV[0]
+                result += (M1(nodes[i][0], nodes[i][1]) * getArray[0] * getArrayV[0]
                     + M2(nodes[i][0], nodes[i][1]) * getArray[1] * getArrayV[1]
                     + B1(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVindex](nodes[i]) * getArray[0]
                     + B2(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVindex](nodes[i]) * getArray[1]
                     + L(nodes[i][0], nodes[i][1]) * baseFunctions[PhiUIndex](nodes[i]) * baseFunctions[PhiVindex](nodes[i])) * weights[i];
             }
 
-            Console.WriteLine($"Element --- {result}\n");
+            //Console.WriteLine($"Element --- {result}\n");
             return result;
         }
 
-
-
-        public double CalculateElementOfRightPart(int PhiVIndex, double[][]nodes,double[] weights)
+        public double CalculateElementOfRightPart(int PhiVIndex, double[][] nodes, double[] weights)
         {
             double result = 0;
-            for(int i = 0; i < nodes.Length; ++i)
+            for (int i = 0; i < nodes.Length; ++i)
             {
                 result += F(nodes[i][0], nodes[i][1]) * baseFunctions[PhiVIndex](nodes[i]) * weights[i];
             }
@@ -317,9 +316,9 @@ namespace FEM
                 {
                     for (int k = 0; k < localInRow; ++k)
                     {
-                        localMatrix.Data[j][k] = CalculateElementOfMatrix(k, j, nodes, weights,FiniteElements[i]) * jakobian;
+                        localMatrix.Data[j][k] = CalculateElementOfMatrix(k, j, nodes, weights, FiniteElements[i]) * jakobian;
                     }
-                    a[j] = CalculateElementOfRightPart(j,nodes,weights);
+                    a[j] = CalculateElementOfRightPart(j, nodes, weights) * jakobian;
                 }
 
                 Matrixes.Add(localMatrix);
@@ -331,7 +330,7 @@ namespace FEM
         public double[][] CreateGlobalMatrix1()
         {
             double[][] globalMatrix = new double[Nodes.Count][];
-            for(int i = 0; i < Nodes.Count; ++i)
+            for (int i = 0; i < Nodes.Count; ++i)
             {
                 globalMatrix[i] = new double[Nodes.Count];
             }
@@ -354,28 +353,51 @@ namespace FEM
                 }
             }
 
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                if (Nodes.Where(node => node.GlobalIndex == i).FirstOrDefault().IsBoundary)
+                    for (int j = 0; j < Nodes.Count; ++j)
+                    {
+                        if (j == i)
+                            globalMatrix[i][j] = 1;
+                        else
+                            globalMatrix[i][j] = 0;
+                    }
+            }
+
             return globalMatrix;
         }
+
         public double[,] CreateGlobalMatrix()
         {
-            double[,] globalMatrix = new double[Nodes.Count,Nodes.Count];
+            double[,] globalMatrix = new double[Nodes.Count, Nodes.Count];
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 for (int j = 0; j < Nodes.Count; ++j)
                 {
-                    globalMatrix[i,j] = 0;
+                    globalMatrix[i, j] = 0;
                 }
             }
-
+            double a = 0;
             for (int i = 0; i < FiniteElements.Count; ++i)
             {
                 for (int row = 0; row < 3; ++row)
                 {
                     for (int col = 0; col < 3; ++col)
                     {
-                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex,FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
+                        globalMatrix[FiniteElements[i].Nodes[row].GlobalIndex, FiniteElements[i].Nodes[col].GlobalIndex] += Matrixes[i].Data[row][col];
                     }
                 }
+            }
+
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                if (Nodes.Where(node => node.GlobalIndex == i).FirstOrDefault().IsBoundary)
+                    for (int j = 0; j < Nodes.Count; ++j)
+                    {
+                        if (j == i)
+                            globalMatrix[i, j] = 1000000000000000;
+                    }
             }
 
             return globalMatrix;
@@ -403,12 +425,12 @@ namespace FEM
 
         public double M1(double x, double y)
         {
-            return 0.02;
+            return 0.1;
         }
 
         public double M2(double x, double y)
         {
-            return 0.02;
+            return 0.1;
         }
 
         public double B1(double x, double y)
@@ -443,16 +465,20 @@ namespace FEM
             double[] rightPart = CreateRightPart();
 
             //GausMethod gau = new GausMethod((uint)Nodes.Count, (uint)Nodes.Count);
-            //gau.Matrix = globalMatrix;
+            //gau.Matrix = globalMatrix1;
             //gau.RightPart = rightPart;
             //Console.WriteLine($"\n\n{gau.SolveMatrix()}");
             //q = gau.Answer;
 
-            alglib.densesolverreport report = new alglib.densesolverreport();
-            int info;
+            //alglib.densesolverreport report = new alglib.densesolverreport();
+            //int info;
 
 
-            alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q);
+            //alglib.rmatrixsolve(globalMatrix, Nodes.Count, rightPart, out info, out report, out q);
+
+            LinearSystem system = new LinearSystem(globalMatrix, rightPart, 0.0000000000000000001);
+            system.GaussSolve();
+            q = system.XVector;
 
             return q;
         }
@@ -2037,9 +2063,9 @@ namespace FEM
 
         public double[] CalculateDePhiDeXDeFiDeY(int deFiIndex, Element element)
         {
-            double deiksdealpha = element.Nodes[0].X * baseFunctionsDerivative[0][0](new double[] {1, 1}) +
-                                  element.Nodes[1].X * baseFunctionsDerivative[1][0](new double[] {1, 1}) +
-                                  element.Nodes[2].X * baseFunctionsDerivative[2][0](new double[] {1, 1});
+            double deiksdealpha = element.Nodes[0].X * baseFunctionsDerivative[0][0](new double[] { 1, 1 }) +
+                                  element.Nodes[1].X * baseFunctionsDerivative[1][0](new double[] { 1, 1 }) +
+                                  element.Nodes[2].X * baseFunctionsDerivative[2][0](new double[] { 1, 1 });
 
             double deigrekdealpha = element.Nodes[0].Y * baseFunctionsDerivative[0][0](new double[] { 1, 1 }) +
                                     element.Nodes[1].Y * baseFunctionsDerivative[1][0](new double[] { 1, 1 }) +
@@ -2049,22 +2075,23 @@ namespace FEM
                                   element.Nodes[1].X * baseFunctionsDerivative[1][1](new double[] { 1, 1 }) +
                                   element.Nodes[2].X * baseFunctionsDerivative[2][1](new double[] { 1, 1 });
 
-            double deigrekdebetta= element.Nodes[0].Y * baseFunctionsDerivative[0][1](new double[] { 1, 1 }) +
+            double deigrekdebetta = element.Nodes[0].Y * baseFunctionsDerivative[0][1](new double[] { 1, 1 }) +
                                   element.Nodes[1].Y * baseFunctionsDerivative[1][1](new double[] { 1, 1 }) +
                                   element.Nodes[2].Y * baseFunctionsDerivative[2][1](new double[] { 1, 1 });
 
             double reverseJE = 1 / (deiksdealpha * deigrekdebetta - deigrekdealpha * deiksdebetta);
 
-            
-            double[] rightPart = new double[]{baseFunctionsDerivative[deFiIndex][0](new double[]{1,1}), baseFunctionsDerivative[deFiIndex][1](new double[]{1,1}) }; 
+            double jakobian = deiksdealpha * deigrekdebetta - deiksdebetta * deigrekdealpha;
+
+            double[] rightPart = new double[] { baseFunctionsDerivative[deFiIndex][0](new double[] { 1, 1 }), baseFunctionsDerivative[deFiIndex][1](new double[] { 1, 1 }) };
 
             double[,] reverseMatrix = new double[,]
             {
-                {deigrekdebetta * reverseJE, -1 * deigrekdealpha * reverseJE},
-                {-1 * deiksdebetta * reverseJE, deiksdealpha * reverseJE}
+                {deigrekdebetta / jakobian, -1 * deigrekdealpha / jakobian },
+                {-1 * deiksdebetta / jakobian, deiksdealpha / jakobian}
             };
 
-            double[] result = new double[2] {0, 0};
+            double[] result = new double[2] { 0, 0 };
             for (int i = 0; i < 2; i++)
             {
                 for (int j = 0; j < 2; ++j)
@@ -2073,8 +2100,187 @@ namespace FEM
                 }
             }
 
-            Console.WriteLine($"ARRAY -- {result[0]} -- {result[1]}\n");
             return result;
         }
     }
+
+
+
+    public class GaussSolutionNotFound : Exception
+    {
+        public GaussSolutionNotFound(string msg)
+            : base("Решение не может быть найдено: \r\n" + msg)
+        {
+        }
+    }
+
+    public class LinearSystem
+    {
+        private double[,] initial_a_matrix;
+        private double[,] a_matrix;  // матрица A
+        private double[] x_vector;   // вектор неизвестных x
+        private double[] initial_b_vector;
+        private double[] b_vector;   // вектор b
+        private double[] u_vector;   // вектор невязки U
+        private double eps;          // порядок точности для сравнения вещественных чисел 
+        private int size;            // размерность задачи
+
+
+        public LinearSystem(double[,] a_matrix, double[] b_vector)
+            : this(a_matrix, b_vector, 0.0001)
+        {
+        }
+        public LinearSystem(double[,] a_matrix, double[] b_vector, double eps)
+        {
+            if (a_matrix == null || b_vector == null)
+                throw new ArgumentNullException("Один из параметров равен null.");
+
+            int b_length = b_vector.Length;
+            int a_length = a_matrix.Length;
+            if (a_length != b_length * b_length)
+                throw new ArgumentException(@"Количество строк и столбцов в матрице A должно совпадать с количеством элементров в векторе B.");
+
+            this.initial_a_matrix = a_matrix;  // запоминаем исходную матрицу
+            this.a_matrix = (double[,])a_matrix.Clone(); // с её копией будем производить вычисления
+            this.initial_b_vector = b_vector;  // запоминаем исходный вектор
+            this.b_vector = (double[])b_vector.Clone();  // с его копией будем производить вычисления
+            this.x_vector = new double[b_length];
+            this.u_vector = new double[b_length];
+            this.size = b_length;
+            this.eps = eps;
+
+            GaussSolve();
+        }
+
+        public double[] XVector
+        {
+            get
+            {
+                return x_vector;
+            }
+        }
+
+        public double[] UVector
+        {
+            get
+            {
+                return u_vector;
+            }
+        }
+
+        // инициализация массива индексов столбцов
+        private int[] InitIndex()
+        {
+            int[] index = new int[size];
+            for (int i = 0; i < index.Length; ++i)
+                index[i] = i;
+            return index;
+        }
+
+        // поиск главного элемента в матрице
+        private double FindR(int row, int[] index)
+        {
+            int max_index = row;
+            double max = a_matrix[row, index[max_index]];
+            double max_abs = Math.Abs(max);
+            //if(row < size - 1)
+            for (int cur_index = row + 1; cur_index < size; ++cur_index)
+            {
+                double cur = a_matrix[row, index[cur_index]];
+                double cur_abs = Math.Abs(cur);
+                if (cur_abs > max_abs)
+                {
+                    max_index = cur_index;
+                    max = cur;
+                    max_abs = cur_abs;
+                }
+            }
+
+            if (max_abs < eps)
+            {
+                if (Math.Abs(b_vector[row]) > eps)
+                    throw new GaussSolutionNotFound("Система уравнений несовместна.");
+                else
+                    throw new GaussSolutionNotFound("Система уравнений имеет множество решений.");
+            }
+
+            // меняем местами индексы столбцов
+            int temp = index[row];
+            index[row] = index[max_index];
+            index[max_index] = temp;
+
+            return max;
+        }
+
+        // Нахождение решения СЛУ методом Гаусса
+        public void GaussSolve()
+        {
+            int[] index = InitIndex();
+            GaussForwardStroke(index);
+            GaussBackwardStroke(index);
+            GaussDiscrepancy();
+        }
+
+        // Прямой ход метода Гаусса
+        private void GaussForwardStroke(int[] index)
+        {
+            // перемещаемся по каждой строке сверху вниз
+            for (int i = 0; i < size; ++i)
+            {
+                // 1) выбор главного элемента
+                double r = FindR(i, index);
+
+                // 2) преобразование текущей строки матрицы A
+                for (int j = 0; j < size; ++j)
+                    a_matrix[i, j] /= r;
+
+                // 3) преобразование i-го элемента вектора b
+                b_vector[i] /= r;
+
+                // 4) Вычитание текущей строки из всех нижерасположенных строк
+                for (int k = i + 1; k < size; ++k)
+                {
+                    double p = a_matrix[k, index[i]];
+                    for (int j = i; j < size; ++j)
+                        a_matrix[k, index[j]] -= a_matrix[i, index[j]] * p;
+                    b_vector[k] -= b_vector[i] * p;
+                    a_matrix[k, index[i]] = 0.0;
+                }
+            }
+        }
+
+        // Обратный ход метода Гаусса
+        private void GaussBackwardStroke(int[] index)
+        {
+            // перемещаемся по каждой строке снизу вверх
+            for (int i = size - 1; i >= 0; --i)
+            {
+                // 1) задаётся начальное значение элемента x
+                double x_i = b_vector[i];
+
+                // 2) корректировка этого значения
+                for (int j = i + 1; j < size; ++j)
+                    x_i -= x_vector[index[j]] * a_matrix[i, index[j]];
+                x_vector[index[i]] = x_i;
+            }
+        }
+
+        // Вычисление невязки решения
+        // U = b - x * A
+        // x - решение уравнения, полученное методом Гаусса
+        private void GaussDiscrepancy()
+        {
+            for (int i = 0; i < size; ++i)
+            {
+                double actual_b_i = 0.0;   // результат перемножения i-строки 
+                                           // исходной матрицы на вектор x
+                for (int j = 0; j < size; ++j)
+                    actual_b_i += initial_a_matrix[i, j] * x_vector[j];
+                // i-й элемент вектора невязки
+                u_vector[i] = initial_b_vector[i] - actual_b_i;
+            }
+        }
+
+    }
+
 }

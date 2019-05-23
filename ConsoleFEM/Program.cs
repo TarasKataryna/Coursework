@@ -10,26 +10,30 @@ namespace ConsoleFEM
         static public void Main(string[] args)
         {
             TriangularMesh triangularMesh = new TriangularMesh(0, 0, 1, 1);
-            triangularMesh.CreateMesh(4, 4);
+            triangularMesh.CreateMesh(10, 10);
             var nodesCount = triangularMesh.Nodes.Count;
-            triangularMesh.Nodes.ForEach(item => Console.WriteLine($"{item.X} -- {item.Y}"));
-            //triangularMesh.CalculateMatrixForEachElement();
+            //triangularMesh.Nodes.ForEach(item => Console.WriteLine($"{item.X} -- {item.Y}"));
+            triangularMesh.CalculateMatrixForEachElement();
 
-            //double[][] globalMatrix = triangularMesh.CreateGlobalMatrix();
-            //double[] rightPart = triangularMesh.CreateRightPart();
+             double[,] globalMatrix = triangularMesh.CreateGlobalMatrix();
+             double[] rightPart = triangularMesh.CreateRightPart();
 
-            //Console.WriteLine("\n Matrix");
+            Console.WriteLine("\n Matrix");
 
             //for (int i = 0; i < nodesCount; ++i)
             //{
             //    for (int j = 0; j < nodesCount; ++j)
             //    {
-            //        Console.Write(globalMatrix[i][j] + "    ");
+            //        Console.Write(globalMatrix[i, j] + "    ");
             //    }
 
             //    Console.WriteLine();
             //}
-
+            ////////////////////Console.WriteLine("\n\n\n\n");
+            ////////////////////for (int j = 0; j < nodesCount; ++j)
+            ////////////////////{
+            ////////////////////    Console.WriteLine(rightPart[j]);
+            ////////////////////}
             //Console.WriteLine("\n Right part");
 
             //for (int i = 0; i < nodesCount; ++i)
@@ -54,30 +58,30 @@ namespace ConsoleFEM
 
             var q = triangularMesh.GetQArray();
 
-            double[][] nodes;
-            double[] weights;
+            //double[][] nodes;
+            //double[] weights;
 
-            triangularMesh.InitTriangleNodes(5, out nodes, out weights);
+            //triangularMesh.InitTriangleNodes(5, out nodes, out weights);
 
-            for (int i = 0; i < nodes.Length; ++i)
-            {
-                for (int j = 0; j < 2; ++j)
-                {
-                    Console.Write(nodes[i][j] + "    ");
-                }
+            //for (int i = 0; i < nodes.Length; ++i)
+            //{
+            //    for (int j = 0; j < 2; ++j)
+            //    {
+            //        Console.Write(nodes[i][j] + "    ");
+            //    }
 
-                Console.WriteLine();
-            }
+            //    Console.WriteLine();
+            //}
 
-            Console.WriteLine("\n\n\n");
-            for (int i = 0; i < weights.Length; ++i)
-            {
-                Console.WriteLine(weights[i]);
-            }
+            //Console.WriteLine("\n\n\n");
+            //for (int i = 0; i < weights.Length; ++i)
+            //{
+            //    Console.WriteLine(weights[i]);
+            //}
 
             Console.WriteLine("\n\n\n");
             Console.WriteLine("MYMYMYMYMYMYMYMYMYMYMY");
-            q.ToList().ForEach(item => Console.WriteLine(item));
+            q.ToList();//.ForEach(item => Console.WriteLine(item));
             Console.WriteLine("\n\n");
 
 
@@ -88,7 +92,12 @@ namespace ConsoleFEM
             }
 
             Console.WriteLine("NOT MY");
-            result.ToList().ForEach(item => Console.WriteLine(item));
+            result.ToList();//.ForEach(item => Console.WriteLine(item));
+            for (int i = 0; i < q.Length; ++i)
+            {
+                Console.WriteLine(q[i] + " ------ " + result[i]);
+            }
+
             Console.Read();
         }
     }
