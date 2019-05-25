@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MLApp;
+
 
 
 namespace FEM
@@ -479,7 +481,6 @@ namespace FEM
             LinearSystem system = new LinearSystem(globalMatrix, rightPart, 0.0000000000000000001);
             system.GaussSolve();
             q = system.XVector;
-
             return q;
         }
 
@@ -2102,9 +2103,122 @@ namespace FEM
 
             return result;
         }
+
+        public string GetAllLinkedNodesForMatlab()
+        {
+            Dictionary<int, List<int>> toReturn = new Dictionary<int, List<int>>();
+            foreach (var element in this.FiniteElements)
+            {
+                if (!toReturn.ContainsKey(element.Nodes[0].GlobalIndex))
+                    toReturn.Add(element.Nodes[0].GlobalIndex, new List<int>());
+                if (!toReturn[element.Nodes[0].GlobalIndex].Contains(element.Nodes[1].GlobalIndex))
+                    toReturn[element.Nodes[0].GlobalIndex].Add(element.Nodes[1].GlobalIndex);
+                if (!toReturn[element.Nodes[0].GlobalIndex].Contains(element.Nodes[2].GlobalIndex))
+                    toReturn[element.Nodes[0].GlobalIndex].Add(element.Nodes[2].GlobalIndex);
+
+                if (!toReturn.ContainsKey(element.Nodes[1].GlobalIndex))
+                    toReturn.Add(element.Nodes[1].GlobalIndex, new List<int>());
+                if (!toReturn[element.Nodes[1].GlobalIndex].Contains(element.Nodes[0].GlobalIndex))
+                    toReturn[element.Nodes[1].GlobalIndex].Add(element.Nodes[0].GlobalIndex);
+                if (!toReturn[element.Nodes[1].GlobalIndex].Contains(element.Nodes[2].GlobalIndex))
+                    toReturn[element.Nodes[1].GlobalIndex].Add(element.Nodes[2].GlobalIndex);
+
+                if (!toReturn.ContainsKey(element.Nodes[2].GlobalIndex))
+                    toReturn.Add(element.Nodes[2].GlobalIndex, new List<int>());
+                if (!toReturn[element.Nodes[2].GlobalIndex].Contains(element.Nodes[1].GlobalIndex))
+                    toReturn[element.Nodes[2].GlobalIndex].Add(element.Nodes[1].GlobalIndex);
+                if (!toReturn[element.Nodes[2].GlobalIndex].Contains(element.Nodes[0].GlobalIndex))
+                    toReturn[element.Nodes[2].GlobalIndex].Add(element.Nodes[0].GlobalIndex);
+            }
+
+            List<int> cells = toReturn.Select(item => item.Value.Count).ToList();
+            int max = cells.ToArray().Max();
+
+            foreach (var item in toReturn)
+            {
+                int count = max - item.Value.Count;
+                for (int i = 0; i < count; ++i)
+                {
+                    item.Value.Add(item.Value[0]);
+                }
+            }
+
+            string str = "[";
+            foreach (var item in toReturn)
+            {
+                str += " " + (item.Key +1).ToString();
+                for (int i = 0; i < item.Value.Count;i++)
+                {
+                    str += " " + (item.Value[i]+ 1).ToString();
+                   
+                }
+
+                str += ";";
+            }
+
+            str += "];";
+
+            return str;
+        }
+
+        public string GetXVectorForMatlab()
+        {
+            var a = new NodesComparer();
+            this.Nodes.Sort(a);
+            string str = "[";
+            foreach (var item in this.Nodes)
+            {
+                str += " " + item.X + ";";
+            }
+
+            str += "];";
+            return str;
+        }
+        public string GetYVectorForMatlab()
+        {
+            var a = new NodesComparer();
+            this.Nodes.Sort(a);
+            string str = "[";
+            foreach (var item in this.Nodes)
+            {
+                str += " " + item.Y + ";";
+            }
+
+            str += "];";
+            return str;
+        }
+
+        public string GetZVectorForMatlab(double[] q)
+        {
+            string str = "[";
+            foreach (var item in q)
+            {
+                str += " " + item + ";";
+            }
+
+            str += "];";
+            return str;
+        }
     }
 
-
+    public class NodesComparer : IComparer<Node>
+    {
+        public int Compare(Node a, Node b)
+        {
+            if (a.GlobalIndex > b.GlobalIndex)
+            {
+                return 1;
+            }
+            else
+            {
+                if (a.GlobalIndex < b.GlobalIndex)
+                {
+                    return -1;
+                }
+                else return 0;
+            }
+        }
+    }
 
     public class GaussSolutionNotFound : Exception
     {

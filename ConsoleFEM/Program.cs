@@ -10,7 +10,7 @@ namespace ConsoleFEM
         static public void Main(string[] args)
         {
             TriangularMesh triangularMesh = new TriangularMesh(0, 0, 1, 1);
-            triangularMesh.CreateMesh(10, 10);
+            triangularMesh.CreateMesh(20, 20);
             var nodesCount = triangularMesh.Nodes.Count;
             //triangularMesh.Nodes.ForEach(item => Console.WriteLine($"{item.X} -- {item.Y}"));
             triangularMesh.CalculateMatrixForEachElement();
@@ -97,8 +97,16 @@ namespace ConsoleFEM
             {
                 Console.WriteLine(q[i] + " ------ " + result[i]);
             }
-
-            Console.Read();
+            System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+            Console.WriteLine("\n\n\n\n\n");
+            Console.WriteLine(triangularMesh.GetXVectorForMatlab());
+            Console.WriteLine("\n\n\n\n\n");
+            Console.WriteLine(triangularMesh.GetYVectorForMatlab());
+            Console.WriteLine("\n\n\n\n\n");
+            Console.WriteLine(triangularMesh.GetZVectorForMatlab(q));
+            Console.WriteLine("\n\n\n\n\n");
+            Console.WriteLine(triangularMesh.GetAllLinkedNodesForMatlab());
+            Console.ReadLine();
         }
     }
 }
